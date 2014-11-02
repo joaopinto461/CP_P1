@@ -218,7 +218,9 @@ public class Worker {
 				}
 
 				int op = rand.nextInt(100);
-
+				
+				synchronized(repository)
+				{
 
 				if (op < put) {
 					Article a = generateArticle();
@@ -235,6 +237,8 @@ public class Worker {
 				}
 
 				count++;
+				
+				}
 
 			}
 
