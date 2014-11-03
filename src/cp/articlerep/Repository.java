@@ -23,7 +23,7 @@ public class Repository {
 		this.byArticleId = new HashTable<Integer, Article>(nkeys*2);
 	}
 
-	public boolean insertArticle(Article a) {
+	public synchronized boolean insertArticle(Article a) {
 
 		if (byArticleId.contains(a.getId()))
 			return false;
@@ -57,7 +57,7 @@ public class Repository {
 		return true;
 	}
 
-	public void removeArticle(int id) {
+	public synchronized void removeArticle(int id) {
 		Article a = byArticleId.get(id);
 
 		if (a == null)
@@ -112,7 +112,7 @@ public class Repository {
 		}
 	}
 
-	public List<Article> findArticleByAuthor(List<String> authors) {
+	public synchronized List<Article> findArticleByAuthor(List<String> authors) {
 		List<Article> res = new LinkedList<Article>();
 
 		Iterator<String> it = authors.iterator();
@@ -131,7 +131,7 @@ public class Repository {
 		return res;
 	}
 
-	public List<Article> findArticleByKeyword(List<String> keywords) {
+	public synchronized List<Article> findArticleByKeyword(List<String> keywords) {
 		List<Article> res = new LinkedList<Article>();
 
 		Iterator<String> it = keywords.iterator();
