@@ -1,12 +1,14 @@
 package cp.articlerep;
 
 import java.util.HashSet;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import cp.articlerep.ds.HashTable;
 import cp.articlerep.ds.Iterator;
 import cp.articlerep.ds.LinkedList;
 import cp.articlerep.ds.List;
 import cp.articlerep.ds.Map;
-import cp.articlerep.ds.HashTable;
 
 /**
  * @author Ricardo Dias
@@ -23,11 +25,19 @@ public class Repository {
 		this.byArticleId = new HashTable<Integer, Article>(nkeys*2);
 	}
 
-	public synchronized boolean insertArticle(Article a) {
+	public boolean insertArticle(Article a) {
 
 		if (byArticleId.contains(a.getId()))
 			return false;
 
+		byArticleId.lock(a.getId());
+		
+		java.util.List<ReentrantLock> locksAuthors = byAuthor.getLocksList(a.getAuthors());
+		java.util.List<ReentrantLock> locksKeywords = byKeyword.getLocksList(a.getAuthors());
+		
+		for(ReentrantLock ra : locksAuthors)
+			ra.lock();
+		
 		Iterator<String> authors = a.getAuthors().iterator();
 		while (authors.hasNext()) {
 			String name = authors.next();
@@ -40,6 +50,12 @@ public class Repository {
 			ll.add(a);
 		}
 
+		for(ReentrantLock ra : locksAuthors)
+			ra.unlock();
+		
+		for(ReentrantLock rk : locksKeywords)
+			rk.lock();
+		
 		Iterator<String> keywords = a.getKeywords().iterator();
 		while (keywords.hasNext()) {
 			String keyword = keywords.next();
@@ -51,19 +67,32 @@ public class Repository {
 			} 
 			ll.add(a);
 		}
+		
+		for(ReentrantLock rk : locksKeywords)
+			rk.unlock();
 
 		byArticleId.put(a.getId(), a);
 
+		byArticleId.unlock(a.getId());
 		return true;
 	}
 
-	public synchronized void removeArticle(int id) {
+	public void removeArticle(int id) {
+
 		Article a = byArticleId.get(id);
 
 		if (a == null)
 			return;
+
+		byArticleId.lock(id);
 		
 		byArticleId.remove(id);
+		
+		java.util.List<ReentrantLock> locksAuthors = byAuthor.getLocksList(a.getAuthors());
+		java.util.List<ReentrantLock> locksKeywords = byKeyword.getLocksList(a.getAuthors());
+		
+		for(ReentrantLock ra : locksKeywords)
+			ra.lock();
 
 		Iterator<String> keywords = a.getKeywords().iterator();
 		while (keywords.hasNext()) {
@@ -87,6 +116,12 @@ public class Repository {
 				}
 			}
 		}
+		
+		for(ReentrantLock ra : locksKeywords)
+			ra.unlock();
+		
+		for(ReentrantLock ra : locksAuthors)
+			ra.lock();
 
 		Iterator<String> authors = a.getAuthors().iterator();
 		while (authors.hasNext()) {
@@ -110,9 +145,17 @@ public class Repository {
 				}
 			}
 		}
+		
+		for(ReentrantLock ra : locksAuthors)
+			ra.lock();
+		
+		byArticleId.unlock(id);	
 	}
 
-	public synchronized List<Article> findArticleByAuthor(List<String> authors) {
+	public List<Article> findArticleByAuthor(List<String> authors) {
+
+		Lock lock = new ReentrantLock();
+		lock.lock();
 		List<Article> res = new LinkedList<Article>();
 
 		Iterator<String> it = authors.iterator();
@@ -127,11 +170,15 @@ public class Repository {
 				}
 			}
 		}
-
+		lock.unlock();
 		return res;
 	}
 
-	public synchronized List<Article> findArticleByKeyword(List<String> keywords) {
+	public List<Article> findArticleByKeyword(List<String> keywords) {
+
+		Lock lock = new ReentrantLock();
+		lock.lock();
+
 		List<Article> res = new LinkedList<Article>();
 
 		Iterator<String> it = keywords.iterator();
@@ -146,28 +193,28 @@ public class Repository {
 				}
 			}
 		}
-
+		lock.unlock();
 		return res;
 	}
 
-	
+
 	/**
 	 * This method is supposed to be executed with no concurrent thread
 	 * accessing the repository.
 	 * 
 	 */
 	public boolean validate() {
-		
+
 		HashSet<Integer> articleIds = new HashSet<Integer>();
 		int articleCount = 0;
-		
+
 		Iterator<Article> aIt = byArticleId.values();
 		while(aIt.hasNext()) {
 			Article a = aIt.next();
-			
+
 			articleIds.add(a.getId());
 			articleCount++;
-			
+
 			// check the authors consistency
 			Iterator<String> authIt = a.getAuthors().iterator();
 			while(authIt.hasNext()) {
@@ -176,7 +223,7 @@ public class Repository {
 					return false;
 				}
 			}
-			
+
 			// check the keywords consistency
 			Iterator<String> keyIt = a.getKeywords().iterator();
 			while(keyIt.hasNext()) {
@@ -186,10 +233,10 @@ public class Repository {
 				}
 			}
 		}
-		
+
 		return articleCount == articleIds.size();
 	}
-	
+
 	private boolean searchAuthorArticle(Article a, String author) {
 		List<Article> ll = byAuthor.get(author);
 		if (ll != null) {

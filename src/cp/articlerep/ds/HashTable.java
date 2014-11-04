@@ -1,5 +1,8 @@
 package cp.articlerep.ds;
 
+import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * @author Ricardo Dias
  */
@@ -18,6 +21,7 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 	}
 
 	private Node[] table;
+	private ReentrantLock[] locks;
 
 	public HashTable() {
 		this(1000);
@@ -25,6 +29,11 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 
 	public HashTable(int size) {
 		this.table = new Node[size];
+		this.locks = new ReentrantLock[size];
+		
+		for(int i = 0; i<size;i++)
+			locks[i] = new ReentrantLock();
+		
 	}
 
 	private int calcTablePos(K key) {
@@ -142,6 +151,42 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 	@Override
 	public Iterator<K> keys() {
 		return null;
+	}
+	
+	public void lock(K key){
+		int pos = this.calcTablePos(key);
+		locks[pos].lock();
+	}
+	
+	public void unlock(K key){
+		int pos = this.calcTablePos(key);
+		locks[pos].unlock();
+	}
+	
+	public java.util.List<ReentrantLock> getLocksList(List<K> list){
+		
+		ArrayList<Integer> positions = new ArrayList<Integer>();
+		ArrayList<ReentrantLock> locksList = new ArrayList<ReentrantLock>();
+		
+		Iterator<K> it = list.iterator();
+		
+		while(it.hasNext())
+		{
+			K key = it.next();
+			int pos = this.calcTablePos(key);
+			
+			if(!positions.contains(pos))
+				positions.add(pos);
+		}
+		
+		for(int i: positions)
+		{
+			ReentrantLock lock = locks[i];
+			locksList.add(lock);
+		}
+		
+		return locksList;
+		
 	}
 
 }
