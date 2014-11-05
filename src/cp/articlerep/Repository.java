@@ -25,15 +25,15 @@ public class Repository {
 
 	public boolean insertArticle(Article a) {
 
-		byArticleId.lock(a.getId());
+		byArticleId.lock(a.getId(),1);
 		
 		if (byArticleId.contains(a.getId())){
-			byArticleId.unlock(a.getId());
+			byArticleId.unlock(a.getId(), 1);
 			return false;
 		}
 
-		byAuthor.lockList(a.getAuthors());
-		byKeyword.lockList(a.getKeywords());
+		byAuthor.lockList(a.getAuthors(), 1);
+		byKeyword.lockList(a.getKeywords(), 1);
 		
 		Iterator<String> authors = a.getAuthors().iterator();
 		while (authors.hasNext()) {
@@ -58,24 +58,24 @@ public class Repository {
 		}	
 
 		byArticleId.put(a.getId(), a);
-		byKeyword.UnlockList(a.getKeywords());
-		byAuthor.UnlockList(a.getAuthors());
+		byKeyword.UnlockList(a.getKeywords(), 1);
+		byAuthor.UnlockList(a.getAuthors(), 1);
 		
-		byArticleId.unlock(a.getId());
+		byArticleId.unlock(a.getId(), 1);
 		return true;
 	}
 
 	public void removeArticle(int id) {
 
-		byArticleId.lock(id);
+		byArticleId.lock(id, 1);
 		Article a = byArticleId.get(id);
 
 		if (a == null){
-			byArticleId.unlock(id);
+			byArticleId.unlock(id, 1);
 			return;
 		}
-		byAuthor.lockList(a.getAuthors());
-		byKeyword.lockList(a.getKeywords());
+		byAuthor.lockList(a.getAuthors(), 1);
+		byKeyword.lockList(a.getKeywords(), 1);
 		
 
 		Iterator<String> authors = a.getAuthors().iterator();
@@ -124,14 +124,14 @@ public class Repository {
 		
 		byArticleId.remove(id);
 		
-		byKeyword.UnlockList(a.getKeywords());
-		byAuthor.UnlockList(a.getAuthors());
-		byArticleId.unlock(id);	
+		byKeyword.UnlockList(a.getKeywords(), 1);
+		byAuthor.UnlockList(a.getAuthors(), 1);
+		byArticleId.unlock(id, 1);	
 	}
 
 	public List<Article> findArticleByAuthor(List<String> authors) {
 		
-		byAuthor.lockList(authors);
+		byAuthor.lockList(authors, 0);
 		List<Article> res = new LinkedList<Article>();
 		
 		Iterator<String> it = authors.iterator();
@@ -147,14 +147,14 @@ public class Repository {
 			}
 		}
 		
-		byAuthor.UnlockList(authors);
+		byAuthor.UnlockList(authors, 0);
 
 		return res;
 	}
 
 	public List<Article> findArticleByKeyword(List<String> keywords) {
 
-		byKeyword.lockList(keywords);
+		byKeyword.lockList(keywords, 0);
 		List<Article> res = new LinkedList<Article>();
 		
 		Iterator<String> it = keywords.iterator();
@@ -170,7 +170,7 @@ public class Repository {
 			}
 		}
 		
-		byKeyword.UnlockList(keywords);
+		byKeyword.UnlockList(keywords, 0);
 		return res;
 	}
 

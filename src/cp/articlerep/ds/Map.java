@@ -14,10 +14,10 @@ public interface Map<K extends Comparable<K>, V> {
 	public Iterator<V> values();
 	public Iterator<K> keys();
 	
-	public void lock(K key);
-	public void unlock(K key);
+	public void lock(K key, int flag);
+	public void unlock(K key, int flag);
 	
-	public void lockList(List<K> elems);
-	public void UnlockList(List<K> elems);
+	public void lockList(List<K> elems, int flag);
+	public void UnlockList(List<K> elems, int flag);
 //	public java.util.List<ReentrantLock> getLocksList(List<K> list);
 }

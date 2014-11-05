@@ -2,8 +2,7 @@ package cp.articlerep.ds;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * @author Ricardo Dias
@@ -23,7 +22,7 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 	}
 
 	private Node[] table;
-	private Lock[] locks;
+	private ReentrantReadWriteLock[] locks;
 
 	public HashTable() {
 		this(1000);
@@ -31,10 +30,10 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 
 	public HashTable(int size) {
 		this.table = new Node[size];
-		this.locks = new ReentrantLock[size];
+		this.locks = new ReentrantReadWriteLock[size];
 		
 		for(int i = 0; i<size;i++)
-			locks[i] = new ReentrantLock();
+			locks[i] = new ReentrantReadWriteLock();
 		
 	}
 
@@ -155,20 +154,25 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 		return null;
 	}
 	
-	public void lock(K key){
+	public void lock(K key, int flag){
 		int pos = this.calcTablePos(key);
-		locks[pos].lock();
+		if(flag == 1)
+			locks[pos].writeLock().lock();
+		else if(flag == 0)
+			locks[pos].readLock().lock();
 	}
 	
-	public void unlock(K key){
+	public void unlock(K key, int flag){
 		int pos = this.calcTablePos(key);
-		locks[pos].unlock();
+		if(flag == 1)
+			locks[pos].writeLock().unlock();
+		else if(flag == 0)
+			locks[pos].readLock().unlock();
 	}
 	
-	public void lockList(List<K> elems){
+	public void lockList(List<K> elems, int flag){
 		SortedSet<Integer> positions = new TreeSet<Integer>();
 		
-//		ArrayList<Integer> positions = new ArrayList<Integer>();
 		Iterator<K> it = elems.iterator();
 		while(it.hasNext()){
 			K key = it.next();
@@ -179,44 +183,32 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 		while(it1.hasNext()){
 			Object p = it1.next();
 			int a = (Integer) p;
-//			System.out.println(a);
-			locks[a].lock();
+			if(flag == 1)
+				locks[a].writeLock().lock();
+			else if(flag == 0)
+				locks[a].readLock().lock();
 		}
-		
-//		System.out.println("--------------");
-//		Collections.sort(positions);
-//		System.out.println("List size: " + positions.size());
-
-//		for(int i : positions){
-//			System.out.println("List elem: " + i);
-//			locks[i].lock();
-//			System.out.println("----------");
-//		}
+	
 	}
 	
-	public void UnlockList(List<K> elems){
+	public void UnlockList(List<K> elems, int flag){
 		SortedSet<Integer> positions = new TreeSet<Integer>();
-
-//		ArrayList<Integer> positions = new ArrayList<Integer>();
 		Iterator<K> it = elems.iterator();
 		while(it.hasNext()){
 			K key = it.next();
 			int pos = this.calcTablePos(key);
-			
-//			if(!positions.contains(pos))
-				positions.add(pos);
+			positions.add(pos);
 		}
 		java.util.Iterator it1 = positions.iterator();
 		while(it1.hasNext()){
 			Object p = it1.next();
 			int a = (Integer) p;
-//			System.out.println(a);
-			locks[a].unlock();
+			if(flag == 1)
+				locks[a].writeLock().unlock();
+			else if(flag == 0)
+				locks[a].readLock().unlock();
 		}
 		
-//		Collections.sort(positions);
-//		for(int i : positions){
-//			locks[i].unlock();
-//		}
+
 	}
 }
