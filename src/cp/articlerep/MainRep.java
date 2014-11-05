@@ -40,7 +40,7 @@ public class MainRep {
 		run.startTest();
 
 		long start_time = System.currentTimeMillis();
-
+		
 		try {
 			if (!DO_VALIDATION) {
 				Thread.sleep(time * 1000);

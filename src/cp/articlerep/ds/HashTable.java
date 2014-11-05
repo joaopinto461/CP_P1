@@ -1,6 +1,8 @@
 package cp.articlerep.ds;
 
-import java.util.ArrayList;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -21,7 +23,7 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 	}
 
 	private Node[] table;
-	private ReentrantLock[] locks;
+	private Lock[] locks;
 
 	public HashTable() {
 		this(1000);
@@ -163,30 +165,58 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 		locks[pos].unlock();
 	}
 	
-	public java.util.List<ReentrantLock> getLocksList(List<K> list){
+	public void lockList(List<K> elems){
+		SortedSet<Integer> positions = new TreeSet<Integer>();
 		
-		ArrayList<Integer> positions = new ArrayList<Integer>();
-		ArrayList<ReentrantLock> locksList = new ArrayList<ReentrantLock>();
+//		ArrayList<Integer> positions = new ArrayList<Integer>();
+		Iterator<K> it = elems.iterator();
+		while(it.hasNext()){
+			K key = it.next();
+			int pos = this.calcTablePos(key);
+			positions.add(pos);
+		}
+		java.util.Iterator it1 = positions.iterator();
+		while(it1.hasNext()){
+			Object p = it1.next();
+			int a = (Integer) p;
+//			System.out.println(a);
+			locks[a].lock();
+		}
 		
-		Iterator<K> it = list.iterator();
-		
-		while(it.hasNext())
-		{
+//		System.out.println("--------------");
+//		Collections.sort(positions);
+//		System.out.println("List size: " + positions.size());
+
+//		for(int i : positions){
+//			System.out.println("List elem: " + i);
+//			locks[i].lock();
+//			System.out.println("----------");
+//		}
+	}
+	
+	public void UnlockList(List<K> elems){
+		SortedSet<Integer> positions = new TreeSet<Integer>();
+
+//		ArrayList<Integer> positions = new ArrayList<Integer>();
+		Iterator<K> it = elems.iterator();
+		while(it.hasNext()){
 			K key = it.next();
 			int pos = this.calcTablePos(key);
 			
-			if(!positions.contains(pos))
+//			if(!positions.contains(pos))
 				positions.add(pos);
 		}
-		
-		for(int i: positions)
-		{
-			ReentrantLock lock = locks[i];
-			locksList.add(lock);
+		java.util.Iterator it1 = positions.iterator();
+		while(it1.hasNext()){
+			Object p = it1.next();
+			int a = (Integer) p;
+//			System.out.println(a);
+			locks[a].unlock();
 		}
 		
-		return locksList;
-		
+//		Collections.sort(positions);
+//		for(int i : positions){
+//			locks[i].unlock();
+//		}
 	}
-
 }

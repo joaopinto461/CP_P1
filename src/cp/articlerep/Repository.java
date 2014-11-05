@@ -1,8 +1,6 @@
 package cp.articlerep;
 
 import java.util.HashSet;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import cp.articlerep.ds.HashTable;
 import cp.articlerep.ds.Iterator;
@@ -27,21 +25,19 @@ public class Repository {
 
 	public boolean insertArticle(Article a) {
 
-		if (byArticleId.contains(a.getId()))
-			return false;
-
 		byArticleId.lock(a.getId());
 		
-		java.util.List<ReentrantLock> locksAuthors = byAuthor.getLocksList(a.getAuthors());
-		java.util.List<ReentrantLock> locksKeywords = byKeyword.getLocksList(a.getAuthors());
-		
-		for(ReentrantLock ra : locksAuthors)
-			ra.lock();
+		if (byArticleId.contains(a.getId())){
+			byArticleId.unlock(a.getId());
+			return false;
+		}
+
+		byAuthor.lockList(a.getAuthors());
+		byKeyword.lockList(a.getKeywords());
 		
 		Iterator<String> authors = a.getAuthors().iterator();
 		while (authors.hasNext()) {
 			String name = authors.next();
-
 			List<Article> ll = byAuthor.get(name);
 			if (ll == null) {
 				ll = new LinkedList<Article>();
@@ -50,54 +46,63 @@ public class Repository {
 			ll.add(a);
 		}
 
-		for(ReentrantLock ra : locksAuthors)
-			ra.unlock();
-		
-		for(ReentrantLock rk : locksKeywords)
-			rk.lock();
-		
 		Iterator<String> keywords = a.getKeywords().iterator();
 		while (keywords.hasNext()) {
 			String keyword = keywords.next();
-
 			List<Article> ll = byKeyword.get(keyword);
 			if (ll == null) {
 				ll = new LinkedList<Article>();
 				byKeyword.put(keyword, ll);
 			} 
 			ll.add(a);
-		}
-		
-		for(ReentrantLock rk : locksKeywords)
-			rk.unlock();
+		}	
 
 		byArticleId.put(a.getId(), a);
-
+		byKeyword.UnlockList(a.getKeywords());
+		byAuthor.UnlockList(a.getAuthors());
+		
 		byArticleId.unlock(a.getId());
 		return true;
 	}
 
 	public void removeArticle(int id) {
 
+		byArticleId.lock(id);
 		Article a = byArticleId.get(id);
 
-		if (a == null)
+		if (a == null){
+			byArticleId.unlock(id);
 			return;
+		}
+		byAuthor.lockList(a.getAuthors());
+		byKeyword.lockList(a.getKeywords());
+		
 
-		byArticleId.lock(id);
+		Iterator<String> authors = a.getAuthors().iterator();
+		while (authors.hasNext()) {
+			String name = authors.next();
+			List<Article> ll = byAuthor.get(name);
+			if (ll != null) {
+				int pos = 0;
+				Iterator<Article> it = ll.iterator();
+				while (it.hasNext()) {
+					Article toRem = it.next();
+					if (toRem == a) {
+						break;
+					}
+					pos++;
+				}
+				ll.remove(pos);
+				it = ll.iterator(); 
+				if (!it.hasNext()) { // checks if the list is empty
+					byAuthor.remove(name);
+				}
+			}
+		}	
 		
-		byArticleId.remove(id);
-		
-		java.util.List<ReentrantLock> locksAuthors = byAuthor.getLocksList(a.getAuthors());
-		java.util.List<ReentrantLock> locksKeywords = byKeyword.getLocksList(a.getAuthors());
-		
-		for(ReentrantLock ra : locksKeywords)
-			ra.lock();
-
 		Iterator<String> keywords = a.getKeywords().iterator();
 		while (keywords.hasNext()) {
 			String keyword = keywords.next();
-
 			List<Article> ll = byKeyword.get(keyword);
 			if (ll != null) {
 				int pos = 0;
@@ -117,47 +122,18 @@ public class Repository {
 			}
 		}
 		
-		for(ReentrantLock ra : locksKeywords)
-			ra.unlock();
+		byArticleId.remove(id);
 		
-		for(ReentrantLock ra : locksAuthors)
-			ra.lock();
-
-		Iterator<String> authors = a.getAuthors().iterator();
-		while (authors.hasNext()) {
-			String name = authors.next();
-
-			List<Article> ll = byAuthor.get(name);
-			if (ll != null) {
-				int pos = 0;
-				Iterator<Article> it = ll.iterator();
-				while (it.hasNext()) {
-					Article toRem = it.next();
-					if (toRem == a) {
-						break;
-					}
-					pos++;
-				}
-				ll.remove(pos);
-				it = ll.iterator(); 
-				if (!it.hasNext()) { // checks if the list is empty
-					byAuthor.remove(name);
-				}
-			}
-		}
-		
-		for(ReentrantLock ra : locksAuthors)
-			ra.lock();
-		
+		byKeyword.UnlockList(a.getKeywords());
+		byAuthor.UnlockList(a.getAuthors());
 		byArticleId.unlock(id);	
 	}
 
 	public List<Article> findArticleByAuthor(List<String> authors) {
-
-		Lock lock = new ReentrantLock();
-		lock.lock();
+		
+		byAuthor.lockList(authors);
 		List<Article> res = new LinkedList<Article>();
-
+		
 		Iterator<String> it = authors.iterator();
 		while (it.hasNext()) {
 			String name = it.next();
@@ -170,17 +146,17 @@ public class Repository {
 				}
 			}
 		}
-		lock.unlock();
+		
+		byAuthor.UnlockList(authors);
+
 		return res;
 	}
 
 	public List<Article> findArticleByKeyword(List<String> keywords) {
 
-		Lock lock = new ReentrantLock();
-		lock.lock();
-
+		byKeyword.lockList(keywords);
 		List<Article> res = new LinkedList<Article>();
-
+		
 		Iterator<String> it = keywords.iterator();
 		while (it.hasNext()) {
 			String keyword = it.next();
@@ -193,7 +169,8 @@ public class Repository {
 				}
 			}
 		}
-		lock.unlock();
+		
+		byKeyword.UnlockList(keywords);
 		return res;
 	}
 

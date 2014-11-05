@@ -1,11 +1,11 @@
 package cp.articlerep.ds;
 
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Ricardo Dias
  */
 public interface Map<K extends Comparable<K>, V> {
+	
 	public V put(K key, V value);
 	public boolean contains(K key);
 	public V remove(K key);
@@ -16,5 +16,8 @@ public interface Map<K extends Comparable<K>, V> {
 	
 	public void lock(K key);
 	public void unlock(K key);
-	public java.util.List<ReentrantLock> getLocksList(List<K> list);
+	
+	public void lockList(List<K> elems);
+	public void UnlockList(List<K> elems);
+//	public java.util.List<ReentrantLock> getLocksList(List<K> list);
 }
