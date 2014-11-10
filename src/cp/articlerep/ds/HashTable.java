@@ -170,6 +170,7 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 			locks[pos].readLock().unlock();
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public void lockList(List<K> elems, int flag){
 		SortedSet<Integer> positions = new TreeSet<Integer>();
 		
@@ -191,6 +192,7 @@ public class HashTable<K extends Comparable<K>, V> implements Map<K, V> {
 	
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public void UnlockList(List<K> elems, int flag){
 		SortedSet<Integer> positions = new TreeSet<Integer>();
 		Iterator<K> it = elems.iterator();
